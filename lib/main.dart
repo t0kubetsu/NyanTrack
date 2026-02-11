@@ -14,11 +14,11 @@ import 'location_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final hasSecurityIssues = await _checkSecurityIssues();
-  //final hasSecurityIssues = false;
-  if (hasSecurityIssues) {
+  final securityIssues = await _getSecurityIssues();
+  //final List<String> securityIssues = [];
+  if (securityIssues.isNotEmpty) {
     print('Security issues detected! Exiting application.');
-    runApp(const SecurityErrorApp());
+    runApp(SecurityErrorApp(issues: securityIssues));
     return;
   }
 
@@ -38,7 +38,9 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-Future<bool> _checkSecurityIssues() async {
+Future<List<String>> _getSecurityIssues() async {
+  final issues = <String>[];
+
   try {
     final isNotTrust = await JailbreakRootDetection.instance.isNotTrust;
     final isRealDevice = await JailbreakRootDetection.instance.isRealDevice;
@@ -47,53 +49,37 @@ Future<bool> _checkSecurityIssues() async {
     print('isNotTrust: $isNotTrust');
     print('isRealDevice: $isRealDevice');
 
-    if (isNotTrust) {
-      print('⚠️ Device is rooted/jailbroken');
-      return true;
-    }
-
-    if (!isRealDevice) {
-      print('⚠️ Running on emulator/simulator');
-      return true;
-    }
+    if (isNotTrust) issues.add('Device is rooted/jailbroken');
+    if (!isRealDevice) issues.add('Running on emulator/simulator');
 
     if (Platform.isAndroid) {
       try {
         bool isOnExternalStorage =
         await JailbreakRootDetection.instance.isOnExternalStorage;
         print('isOnExternalStorage: $isOnExternalStorage');
-
-        if (isOnExternalStorage) {
-          print('⚠️ App is installed on external storage');
-          return true;
-        }
+        if (isOnExternalStorage) issues.add('App installed on external storage');
       } catch (e) {
-        print('Error checking external storage: $e');
+        issues.add('Error checking external storage: $e');
       }
     }
 
-    final checkForIssues = await JailbreakRootDetection.instance.checkForIssues;
-    print('Total issues found: ${checkForIssues.length}');
-
-    if (checkForIssues.isNotEmpty) {
+    if (issues.isEmpty) {
+      print('✅ No security issues detected');
+    } else {
       print('⚠️ Security issues detected:');
-      for (final issue in checkForIssues) {
-        print('  - ${issue.toString()}');
-      }
-      return true;
+      issues.forEach((issue) => print('  - $issue'));
     }
-
-    print('✅ No security issues detected');
-    return false;
-
   } catch (e) {
     print('Error during security check: $e');
-    return true;
+    issues.add('Error during security check: $e');
   }
+
+  return issues;
 }
 
 class SecurityErrorApp extends StatelessWidget {
-  const SecurityErrorApp({super.key});
+  final List<String> issues;
+  const SecurityErrorApp({super.key, required this.issues});
 
   @override
   Widget build(BuildContext context) {
@@ -108,11 +94,7 @@ class SecurityErrorApp extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.security,
-                  size: 100,
-                  color: Colors.white,
-                ),
+                const Icon(Icons.security, size: 100, color: Colors.white),
                 const SizedBox(height: 32),
                 const Text(
                   'Security Issue Detected',
@@ -125,17 +107,30 @@ class SecurityErrorApp extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'This app cannot run on rooted/jailbroken devices or emulators for security reasons.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
-                  ),
+                  'This app cannot run on rooted/jailbroken devices or emulators.',
+                  style: TextStyle(fontSize: 16, color: Colors.white70),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
+                if (issues.isNotEmpty) ...[
+                  const Text(
+                    'Details:',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
+                  ),
+                  const SizedBox(height: 8),
+                  ...issues.map(
+                        (issue) => Text(
+                      '- $issue',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ],
                 ElevatedButton(
                   onPressed: () {
-                    // Force exit the app
                     if (Platform.isAndroid) {
                       SystemNavigator.pop();
                     } else if (Platform.isIOS) {
@@ -146,9 +141,7 @@ class SecurityErrorApp extends StatelessWidget {
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.red.shade900,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
+                        horizontal: 32, vertical: 16),
                   ),
                   child: const Text('Exit App'),
                 ),
