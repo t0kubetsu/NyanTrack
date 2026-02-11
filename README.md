@@ -189,7 +189,7 @@ flutter pub get
 flutter build apk
 ```
 
-Release build:
+To build a release APK with Dart code obfuscation:
 ```bash
 flutter build apk --release --obfuscate --split-debug-info=debug-info
 ```
