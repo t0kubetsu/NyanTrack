@@ -16,6 +16,7 @@ dependencies:
   http: ^1.2.1
   device_info_plus: ^12.3.0
   just_audio: ^0.10.5
+  http_certificate_pinning: ^3.0.1
 
   cupertino_icons: ^1.0.8
 

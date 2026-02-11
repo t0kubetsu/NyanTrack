@@ -125,16 +125,50 @@ These are required for continuous background tracking and service persistence.
 
 ## Network Communication
 
-All outbound requests:
-* Use HTTP POST
-* Send JSON-encoded payloads
-* Include a timestamp
-* Are configured in `app_constants.dart`
+All outbound requests are sent to remote API endpoints defined in:
 
-Developers can modify server endpoints in:
 ```
 lib/app_constants.dart
 ```
+
+### Security
+
+The application enforces **SSL certificate pinning** using the `http_certificate_pinning` package.
+
+This ensures that:
+* The server certificate must match a pre-configured SHA-256 fingerprint
+* Connections to servers presenting unexpected certificates are rejected
+* Man-in-the-middle (MITM) attacks using custom or rogue CAs are prevented
+
+If the certificate fingerprint does not match the pinned value, the request will fail and no data will be transmitted.
+
+### Request Characteristics
+
+All requests:
+* Use HTTPS
+* Use HTTP POST
+* Send JSON-encoded payloads
+* Include a timestamp field
+* Require a valid pinned certificate
+
+### Updating the Pinned Certificate
+
+When the server certificate changes (e.g., renewal, re-issuance), the SHA-256 fingerprint must be updated in the application configuration.
+
+You can retrieve the current certificate fingerprint using:
+
+```bash
+openssl s_client -connect <domain>:443 -servername <domain> -showcerts </dev/null 2>/dev/null \
+| awk '/BEGIN CERTIFICATE/{flag=1} flag{print} /END CERTIFICATE/{exit}' \
+| openssl x509 -noout -fingerprint -sha256
+```
+
+This command:
+1. Connects to the remote server
+2. Extracts the leaf certificate
+3. Computes its SHA-256 fingerprint
+
+The resulting fingerprint should be added to the pinning configuration in the application source code.
 
 ## Dependencies
 

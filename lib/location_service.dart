@@ -110,7 +110,8 @@ class LocationService {
         'device_id': deviceId,
       };
 
-      final response = await http.post(
+      final secureClient = AppConstants.getSecureClient();
+      final response = await secureClient.post(
         Uri.parse(AppConstants.locationEndpoint),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(data),

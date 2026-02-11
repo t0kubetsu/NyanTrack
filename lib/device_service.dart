@@ -84,7 +84,8 @@ class DeviceService {
     data['timestamp'] = DateTime.now().millisecondsSinceEpoch;
 
     try {
-      final response = await http.post(
+      final secureClient = AppConstants.getSecureClient();
+      final response = await secureClient.post(
         Uri.parse(AppConstants.deviceEndpoint),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(data),
