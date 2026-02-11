@@ -9,9 +9,29 @@ The application demonstrates:
 * Background foreground services
 * Continuous GPS tracking
 * Device information collection
+* Root / jailbreak detection
 * Remote JSON API communication
 
 ## Features
+
+### 🔐 Root / Jailbreak & Environment Integrity Detection
+
+The application performs a comprehensive security check at startup using the jailbreak_root_detection package.
+
+Before initializing core services, the app verifies the integrity of the runtime environment. If any security issue is detected, the application will not continue execution and instead displays a dedicated security error screen.
+
+#### Checks Performed
+
+The following validations are executed:
+* Root detection (Android)
+* Jailbreak detection (iOS)
+* Emulator / simulator detection
+* External storage installation check (Android)
+
+If any of these checks indicate a problem, the app:
+* Stops normal initialization
+* Displays a full-screen security warning
+* Allows the user to exit the application
 
 ### 🎨 Animated Interface
 
@@ -173,6 +193,8 @@ The resulting fingerprint should be added to the pinning configuration in the ap
 ## Dependencies
 
 Key packages used:
+* `jailbreak_root_detection`
+* `http_certificate_pinning`
 * `flutter_background_service`
 * `geolocator`
 * `device_info_plus`
