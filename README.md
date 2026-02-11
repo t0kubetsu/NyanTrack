@@ -157,7 +157,7 @@ flutter build apk
 
 Release build:
 ```bash
-flutter build apk --release
+flutter build apk --release --obfuscate --split-debug-info=debug-info
 ```
 
 Output location:
